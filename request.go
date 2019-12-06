@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-querystring/query"
 	"github.com/gorilla/websocket"
 	"github.com/imkira/go-interpol"
+	"moul.io/http2curl"
 )
 
 // Request provides methods to incrementally build http.Request object,
@@ -590,6 +591,22 @@ func (r *Request) WithChunked(reader io.Reader) *Request {
 	return r
 }
 
+func (r *Request) WithJSONPretty(object interface{}) *Request {
+	if r.chain.failed() {
+		return r
+	}
+	b, err := json.MarshalIndent(object, "", "    ")
+	if err != nil {
+		r.chain.fail(err.Error())
+		return r
+	}
+
+	r.setType("WithJSON", "application/json; charset=utf-8", false)
+	r.setBody("WithJSON", bytes.NewReader(b), len(b), false)
+
+	return r
+}
+
 // WithBytes sets request body to given slice of bytes.
 //
 // Example:
@@ -877,6 +894,18 @@ func (r *Request) Expect() *Response {
 	}
 
 	return resp
+}
+
+func (r *Request) ExpectWithCurl() *Response {
+	r.encodeRequest()
+
+	command, _ := http2curl.GetCurlCommand(r.http)
+	fmt.Println("Curl Request:")
+	fmt.Println(command)
+
+	resp, elapsed := r.sendRequest()
+
+	return makeResponse(r.chain, resp, elapsed)
 }
 
 func (r *Request) roundTrip() *Response {
