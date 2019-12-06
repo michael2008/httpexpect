@@ -897,15 +897,10 @@ func (r *Request) Expect() *Response {
 }
 
 func (r *Request) ExpectWithCurl() *Response {
-	r.encodeRequest()
-
 	command, _ := http2curl.GetCurlCommand(r.http)
 	fmt.Println("Curl Request:")
 	fmt.Println(command)
-
-	resp, elapsed := r.sendRequest()
-
-	return makeResponse(r.chain, resp, elapsed)
+	return r.Expect()
 }
 
 func (r *Request) roundTrip() *Response {
